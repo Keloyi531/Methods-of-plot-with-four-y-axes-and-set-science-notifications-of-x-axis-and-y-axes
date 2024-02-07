@@ -1,0 +1,104 @@
+from mpl_toolkits.axisartist.parasite_axes import HostAxes
+import matplotlib.pyplot as plt
+
+fig = plt.figure(figsize=[8, 4])
+
+host = fig.add_axes([0.17, 0.1, 0.65, 0.8], axes_class=HostAxes)
+par1 = host.twinx()
+par2 = host.twinx()
+par3=host.twinx()
+
+par1.axis["right"].toggle(all=True)
+par2.axis["right"].toggle(all=True)
+par3.axis["left"].toggle(all=True)
+
+par2.axis["right"] = par2.new_fixed_axis(loc="right", offset=(50, 0))
+par3.axis["right"] = par3.new_fixed_axis(loc="left", offset=(-50, 0))
+
+p1, = host.plot([1, 2, 3], [10,20,30],label="y1",color='r')   #y:0~50
+p2, = par1.plot([1.5, 2.5, 3.5], [100,150,300],label="y2",color='orange')
+par2.scatter([1.7, 2.7, 2.8], [3000,2500,5000],s=15, marker='s',label="y3",color='limegreen')
+p4, = par3.plot([1, 2, 3], [50000,15000,25000],label="y4",color='deepskyblue')
+
+axes_name=[host,par1,par2,par3] #y1,y2,y3,y4
+offs=[0.1,0.05,0.2,0.2]
+dig=[2,2,2,2]
+side=['left','right','right','left']
+omit=[True,True,True,True]
+def move_sn_multiAxes(axes_name,offs, dig, side, omit):
+    """
+    Parameters
+    offs: float, optional;<0>
+          Horizontal movement additional to default.
+    dig: int, optional;<0>
+          Number of decimals after the coma.
+    side: string, optional;<0>
+          To choose the side of the y-axis notation.
+    omit-last: bool, optional;<False>
+          If ture, the top y-axis-lable is omitted.
+
+    Functions to look at for a better implementation:
+    ax.ticklabel_format
+    ax.yaxis.major.formatter.set_offset_string
+    """
+    locs,_=tuple([axes_name.get_yticks(),axes_name.get_yticklabels()])#a=[1,2];b,_=a means b=a[0]
+    # Put the last entry into a string, ensuring it is in scientific notation
+    llocs= '%.3e' % locs[-1]
+    yoff=int(llocs.split('e')[1])
+    # If omit is true, remove first and last entry
+    if omit:
+        slocs = locs[1:-1]
+    else:
+        slocs = locs
+    # Get the ticks
+    '''get_yticks() returns (locs,labels); 
+locs: ytick locations; labels: ylabel Text objects
+is: (array([...]),[Text(),...]), so locs is the locations,[...] in array()
+    '''
+    # Set ticks to the requested precision
+    form = r'$%.' + str(dig) + 'f$'   #"r": make a raw string;
+    axes_name.set_yticks(slocs,labels=list(map(lambda x: form % x, slocs / (10 ** yoff))))
+    # Define offset depending on the side
+    if side == 'left':
+        offs = 0 - offs  # Default left: 0
+    elif side == 'right':
+        offs = 1 + offs # Default right: 1.0
+
+    # Plot the exponent #https://matplotlib.org/stable/tutorials/text/text_props.html
+    axes_name.text(offs, 1.05, r'$\times10^{%i}$' % yoff,transform=plt.gca().transAxes,verticalalignment='top')
+    # Return the locs
+    return slocs
+host.set_xlabel("x")
+host.set_ylabel("y1")
+par1.set_ylabel("y2")
+par2.set_ylabel("y3")
+par3.set_ylabel("y4")
+host.axis["left"].label.set_color(p1.get_color())
+par1.axis["right"].label.set_color(p2.get_color())
+par2.axis["right"].label.set_color('g')
+par3.axis["right"].label.set_color(p4.get_color())
+
+for i in range(4):
+    axes_name[i].locs = move_sn_multiAxes(axes_name[i], offs[i], dig[i], side[i],omit[i])
+
+def move_sn_multiAxes_x(axes_name,offs, dig, omit):
+    locs,_=tuple([axes_name.get_xticks(),axes_name.get_xticklabels()])
+    llocs= '%.3e' % locs[-1]
+    xoff=int(llocs.split('e')[1])
+    if omit:
+        slocs = locs[1:-1]
+    else:
+        slocs = locs
+    form = r'$%.' + str(dig) + 'f$'   #"r": make a raw string;
+    axes_name.set_xticks(slocs,labels=list(map(lambda x: form % x, slocs / (10 ** xoff))))
+    offs = 1 + offs
+    axes_name.text(offs, -.03, r'$\times10^{%i}$' % xoff,transform=plt.gca().transAxes,verticalalignment='top')
+    return slocs
+changex=True
+if changex:
+    offsx = 0
+    digx = 2
+    omitx=True
+    axes_name[0].locs = move_sn_multiAxes_x(axes_name[0], offsx, digx, omitx)
+
+plt.show()
